@@ -156,3 +156,47 @@ Player player2
 🔹 動作
 建立 Game 物件
 呼叫 start() 開始遊戲
+
+# 程式安裝方式
+
+## 編譯方式
+使用 g++ 編譯（推薦）
+
+在終端機（Terminal / Command Prompt）中輸入：
+
+g++ main.cpp Card.cpp Deck.cpp Player.cpp HandEvaluator.cpp Game.cpp -o poker
+🔹 指令說明
+g++：C++ 編譯器
+*.cpp：所有程式來源檔
+-o poker：輸出執行檔名稱為 poker
+
+##   執行流程
+
+執行程式
+
+編譯完成後，輸入：
+
+./poker
+
+程式執行步驟
+1. 程式啟動
+2. 建立 Game 物件
+3. 初始化 Deck（52 張牌）
+4. 進行洗牌（Shuffle）
+5. 發牌（每位玩家 2 張）
+6. 顯示玩家手牌
+7. 呼叫 HandEvaluator 計算牌力
+8. 比較玩家分數
+9. 輸出勝負結果
+10. 程式結束
+## 依賴環境
+
+使用到的標準函式庫
+<iostream>   // 輸出輸入
+<vector>     // 動態陣列
+<string>     // 字串處理
+<algorithm>  // shuffle
+<random>     // 隨機數產生
+
+👉 全部皆為 C++ 標準庫，不需額外安裝
+
