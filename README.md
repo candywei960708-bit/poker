@@ -200,3 +200,33 @@ g++：C++ 編譯器
 
 👉 全部皆為 C++ 標準庫，不需額外安裝
 
+
+
+
+classDiagram
+    class Card {
+        -int rank
+        -int suit
+        +toString() string
+    }
+    class Player {
+        -string name
+        -int chips
+        -vector~Card~ hand
+        +bet(amount, pot)
+        +addCard(card)
+    }
+    class Evaluator {
+        <<static>>
+        +getScore(hand, community) int
+    }
+    class Game {
+        -vector~Player*~ players
+        -vector~Card~ deck
+        -vector~Card~ communityCards
+        +startRound()
+        +determineWinner()
+    }
+    Game "1" --* "n" Player : contains
+    Player "1" --* "2" Card : has
+    Game ..> Evaluator : uses
