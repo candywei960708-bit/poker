@@ -61,9 +61,6 @@
 * **編譯器**：支援 C++14 或以上版本 (建議使用 Visual Studio)
 * **第三方套件**：[SFML (Simple and Fast Multimedia Library) v2.5.1](https://www.sfml-dev.org/)
 
-### 編譯與執行流程
-1. 複製此儲存庫至本地端：
-   ```bash
-   git clone [請替換為你的 GitHub Repo 網址]
+
 
 
