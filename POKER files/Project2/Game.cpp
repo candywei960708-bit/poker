@@ -23,6 +23,31 @@ void Game::initDeck() {
     std::shuffle(deck.begin(), deck.end(), g);
 }
 
+void Game::displayBoard() {
+    std::cout << "\n==========================================\n";
+    std::cout << "[Community Cards]: ";
+    if (communityCards.empty()) {
+        std::cout << "(None)";
+    } else {
+        for (const auto& c : communityCards) {
+            if (c.getFaceUp()) std::cout << c.toString() << " ";
+            else std::cout << "[Hidden] ";
+        }
+    }
+    std::cout << "\n";
+
+    std::cout << "[Your Hand]: ";
+    if (!players.empty() && !players[0]->hasFolded()) {
+        for (const auto& c : players[0]->getHand()) {
+            std::cout << c.toString() << " ";
+        }
+    } else {
+        std::cout << "(Folded)";
+    }
+    std::cout << "  |  [Chips]: " << getPlayerChips() << "  |  [Pot]: " << pot << "\n";
+    std::cout << "==========================================\n";
+}
+
 void Game::bettingRound() {
     for (auto p : players) p->clearCurrentBet();
 
@@ -158,7 +183,7 @@ void Game::bettingRound() {
     std::cout << "--- Betting Round complete! Pot is now: " << pot << " ---" << std::endl;
 }
 
-void Game::startNewRound(sf::RenderWindow& window, sf::Texture& tableTex, sf::Texture& deckTex, sf::Texture& backTex, sf::Font& font) {
+void Game::startNewRound() {
     initDeck();
     communityCards.clear();
     pot = 0;
@@ -188,20 +213,14 @@ void Game::startNewRound(sf::RenderWindow& window, sf::Texture& tableTex, sf::Te
         p->addCard(c2);
     }
 
-    window.clear();
-    sf::Sprite tempTable(tableTex);
-    tempTable.setScale(1280.0f / tableTex.getSize().x, 720.0f / tableTex.getSize().y);
-    window.draw(tempTable);
-    drawGameElements(window, deckTex, backTex, font);
-    window.display();
+    displayBoard();
 
     if (players[0]->getChips() > 0 && !players[0]->hasFolded()) {
         bettingRound();
     }
-    std::cout << "\n>>> Press [Space] in SFML Window to deal the FLOP... <<<" << std::endl;
 }
 
-void Game::proceedToNextStage(sf::RenderWindow& window, sf::Texture& tableTex, sf::Texture& deckTex, sf::Texture& backTex, sf::Font& font) {
+void Game::proceedToNextStage() {
     if (roundStage >= 4) return;
 
     roundStage++;
@@ -231,25 +250,10 @@ void Game::proceedToNextStage(sf::RenderWindow& window, sf::Texture& tableTex, s
         std::cout << "\n--- Stage 4: Showdown (Revealing Hands) ---" << std::endl;
         determineWinner();
         showPlayerChips();
-
-        window.clear();
-        sf::Sprite tempTable(tableTex);
-        tempTable.setScale(1280.0f / tableTex.getSize().x, 720.0f / tableTex.getSize().y);
-        window.draw(tempTable);
-        drawGameElements(window, deckTex, backTex, font);
-        window.display();
-
-        std::cout << "\n==========================================" << std::endl;
-        std::cout << "Round ended. Press [Space] to start a NEW game!" << std::endl;
         return;
     }
 
-    window.clear();
-    sf::Sprite tempTable(tableTex);
-    tempTable.setScale(1280.0f / tableTex.getSize().x, 720.0f / tableTex.getSize().y);
-    window.draw(tempTable);
-    drawGameElements(window, deckTex, backTex, font);
-    window.display();
+    displayBoard();
 
     int activeNPCs = 0;
     for (size_t i = 1; i < players.size(); ++i) {
@@ -262,10 +266,6 @@ void Game::proceedToNextStage(sf::RenderWindow& window, sf::Texture& tableTex, s
     else {
         std::cout << "--- No more betting actions available (Players All-in or Out) ---" << std::endl;
     }
-
-    if (roundStage == 1) std::cout << "\n>>> Press [Space] to deal the TURN... <<<" << std::endl;
-    if (roundStage == 2) std::cout << "\n>>> Press [Space] to deal the RIVER... <<<" << std::endl;
-    if (roundStage == 3) std::cout << "\n>>> Press [Space] to see the SHOWDOWN! <<<" << std::endl;
 }
 
 int Game::getPlayerChips() const {
@@ -317,68 +317,4 @@ void Game::determineWinner() {
 void Game::showPlayerChips() {
     std::cout << "\n--- Current Status ---" << std::endl;
     for (auto p : players) std::cout << p->getName() << ": " << p->getChips() << std::endl;
-}
-
-void Game::drawGameElements(sf::RenderWindow& window, sf::Texture& deckTex, sf::Texture& backTex, sf::Font& font) {
-    float startCommX = 460.0f;
-    float commY = 310.0f;
-    for (size_t i = 0; i < communityCards.size(); ++i) {
-        communityCards[i].render(window, deckTex, backTex, startCommX + (i * 75.0f), commY);
-    }
-
-    if (!players.empty()) {
-        sf::Text txt;
-        txt.setFont(font);
-        txt.setCharacterSize(18);
-        txt.setFillColor(sf::Color::White);
-
-        if (!players[0]->hasFolded()) {
-            std::vector<Card> myHand = players[0]->getHand();
-            if (myHand.size() >= 2) {
-                myHand[0].render(window, deckTex, backTex, 580.0f, 520.0f);
-                myHand[1].render(window, deckTex, backTex, 640.0f, 520.0f);
-            }
-        }
-        txt.setString("You: " + std::to_string(players[0]->getChips()));
-        txt.setPosition(580.0f, 650.0f);
-        window.draw(txt);
-    }
-
-    float npcPositionsX[] = { 180.0f, 580.0f, 980.0f, 180.0f, 980.0f };
-    float npcPositionsY[] = { 300.0f, 100.0f, 300.0f, 100.0f, 100.0f };
-
-    for (size_t i = 1; i < players.size(); ++i) {
-        sf::Text txt;
-        txt.setFont(font);
-        txt.setCharacterSize(16);
-        txt.setFillColor(sf::Color::Yellow);
-
-        size_t idx = i - 1;
-        if (idx < 5) {
-            if (players[i]->getChips() <= 0) {
-                txt.setString(players[i]->getName() + " [BANKRUPT]");
-            }
-            else if (!players[i]->hasFolded()) {
-                std::vector<Card> npcHand = players[i]->getHand();
-                if (npcHand.size() >= 2) {
-                    npcHand[0].render(window, deckTex, backTex, npcPositionsX[idx], npcPositionsY[idx]);
-                    npcHand[1].render(window, deckTex, backTex, npcPositionsX[idx] + 45.0f, npcPositionsY[idx]);
-                }
-                txt.setString(players[i]->getName() + ": " + std::to_string(players[i]->getChips()));
-            }
-            else {
-                txt.setString(players[i]->getName() + " [FOLDED]");
-            }
-            txt.setPosition(npcPositionsX[idx], npcPositionsY[idx] + 130.0f);
-            window.draw(txt);
-        }
-    }
-
-    sf::Text potTxt;
-    potTxt.setFont(font);
-    potTxt.setCharacterSize(22);
-    potTxt.setFillColor(sf::Color::Cyan);
-    potTxt.setString("CURRENT POT: " + std::to_string(pot));
-    potTxt.setPosition(540.0f, 260.0f);
-    window.draw(potTxt);
 }
