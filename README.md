@@ -57,7 +57,6 @@
 ### 依賴環境
 * **作業系統**：Windows
 * **編譯器**：支援 C++14 或以上版本 (建議使用 Visual Studio)
-* **第三方套件**：[SFML (Simple and Fast Multimedia Library) v2.5.1](https://www.sfml-dev.org/)
 
 ## 8. 運行畫面截圖
 
