@@ -4,7 +4,6 @@
 #include "Player.h"
 #include "Card.h"
 #include <vector>
-#include <SFML/Graphics.hpp>
 
 class Game {
 private:
@@ -23,13 +22,13 @@ public:
     ~Game();
     void addPlayer(std::string name);
 
-    void startNewRound(sf::RenderWindow& window, sf::Texture& tableTex, sf::Texture& deckTex, sf::Texture& backTex, sf::Font& font);
-    void proceedToNextStage(sf::RenderWindow& window, sf::Texture& tableTex, sf::Texture& deckTex, sf::Texture& backTex, sf::Font& font);
+    void startNewRound();
+    void proceedToNextStage();
     bool isRoundOver() const;
 
-    int getPlayerChips() const; // 🎯 新增：供 main.cpp 檢查玩家死活
+    int getPlayerChips() const; 
     void determineWinner();
-    void drawGameElements(sf::RenderWindow& window, sf::Texture& deckTex, sf::Texture& backTex, sf::Font& font);
+    void displayBoard(); // 顯示終端機版本的桌面狀態
 };
 
 #endif
