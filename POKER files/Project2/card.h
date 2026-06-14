@@ -1,7 +1,6 @@
 #ifndef CARD_H
 #define CARD_H
 #include <string>
-#include <SFML/Graphics.hpp>
 
 class Card {
 private:
@@ -16,6 +15,5 @@ public:
 
     void setFaceUp(bool faceUp);
     bool getFaceUp() const;
-    void render(sf::RenderWindow& window, sf::Texture& deckTex, sf::Texture& backTex, float posX, float posY);
 };
 #endif
