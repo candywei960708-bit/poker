@@ -1,0 +1,7 @@
+﻿  Game.cpp
+C:\MyPoker\Project2\Project2\Game.h(1,1): warning C4819: 檔案含有無法在目前字碼頁 (950) 中表示的字元。請以 Unicode 格式儲存檔案以防止資料遺失
+  (編譯來源檔案 'Game.cpp')
+  
+  Project2.vcxproj -> C:\MyPoker\Project2\x64\Debug\Project2.exe
+  C:\MyPoker\Project2\packages\SFML-cpp.redist.2.5.1.1\build\native\bin\x64\Debug\openal32.dll
+  已複製 1 個檔案
