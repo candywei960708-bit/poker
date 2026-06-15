@@ -1,15 +1,16 @@
-#include "Card.h"
+#include "card.h"
 
-Card::Card(int r, int s) : rank(r), suit(s), isFaceUp(false) {}
+Card::Card(int s, int v) : suit(s), value(v) {}
 
-int Card::getRank() const { return rank; }
-int Card::getSuit() const { return suit; }
+std::string Card::getCardName() const {
+    std::string sName[] = { "Clubs", "Diamonds", "Hearts", "Spades" };
+    std::string vName;
 
-std::string Card::toString() const {
-    std::string ranks[] = { "", "", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A" };
-    std::string suits[] = { "[Clubs]", "[Diamonds]", "[Hearts]", "[Spades]" };
-    return suits[suit] + ranks[rank];
+    if (value <= 10) vName = std::to_string(value);
+    else if (value == 11) vName = "J";
+    else if (value == 12) vName = "Q";
+    else if (value == 13) vName = "K";
+    else if (value == 14) vName = "A";
+
+    return sName[suit] + "_" + vName;
 }
-
-void Card::setFaceUp(bool faceUp) { isFaceUp = faceUp; }
-bool Card::getFaceUp() const { return isFaceUp; }

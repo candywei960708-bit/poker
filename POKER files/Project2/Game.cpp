@@ -1,320 +1,254 @@
 #include "Game.h"
-#include "Evaluator.h"
 #include <iostream>
 #include <algorithm>
 #include <random>
-#include <ctime>
+#include "Evaluator.h"
 
-Game::Game() : pot(0), roundStage(0) {}
-Game::~Game() { for (auto p : players) delete p; }
+using namespace std;
 
-void Game::addPlayer(std::string name) {
-    players.push_back(new Player(name));
+Game::Game() : pot(0), currentMaxBet(0) {}
+
+void Game::initializeGame(int botCount) {
+    players.push_back(Player("Player_You", 1000));
+    for (int i = 1; i <= botCount; ++i) {
+        players.push_back(Player("Bot_" + std::to_string(i), 1000));
+    }
 }
 
-void Game::initDeck() {
+void Game::createDeck() {
     deck.clear();
-    for (int s = 0; s < 4; ++s)
-        for (int r = 2; r <= 14; ++r)
-            deck.push_back(Card(r, s));
+    for (int s = 0; s < 4; ++s) {
+        for (int v = 2; v <= 14; ++v) {
+            deck.push_back(Card(s, v));
+        }
+    }
+}
 
+void Game::shuffleDeck() {
     std::random_device rd;
     std::mt19937 g(rd());
     std::shuffle(deck.begin(), deck.end(), g);
 }
 
-void Game::displayBoard() {
-    std::cout << "\n==========================================\n";
-    std::cout << "[Community Cards]: ";
-    if (communityCards.empty()) {
-        std::cout << "(None)";
-    } else {
-        for (const auto& c : communityCards) {
-            if (c.getFaceUp()) std::cout << c.toString() << " ";
-            else std::cout << "[Hidden] ";
+void Game::dealInitialCards() {
+    for (auto& p : players) {
+        if (!p.isBankrupt) {
+            p.hand.push_back(deck.back()); deck.pop_back();
+            p.hand.push_back(deck.back()); deck.pop_back();
         }
     }
-    std::cout << "\n";
-
-    std::cout << "[Your Hand]: ";
-    if (!players.empty() && !players[0]->hasFolded()) {
-        for (const auto& c : players[0]->getHand()) {
-            std::cout << c.toString() << " ";
-        }
-    } else {
-        std::cout << "(Folded)";
-    }
-    std::cout << "  |  [Chips]: " << getPlayerChips() << "  |  [Pot]: " << pot << "\n";
-    std::cout << "==========================================\n";
-}
-
-void Game::bettingRound() {
-    for (auto p : players) p->clearCurrentBet();
-
-    bool actionComplete = false;
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dis(1, 100);
-
-    std::vector<Player*> activeLoggedPlayers;
-
-    while (!actionComplete) {
-        actionComplete = true;
-
-        int maxBet = 0;
-        for (auto p : players) {
-            if (!p->hasFolded() && p->getCurrentBet() > maxBet) {
-                maxBet = p->getCurrentBet();
-            }
-        }
-
-        for (size_t i = 0; i < players.size(); ++i) {
-            Player* p = players[i];
-
-            if (p->hasFolded() || p->isAllIn() || p->getChips() <= 0) continue;
-
-            bool hasHeChecked = (std::find(activeLoggedPlayers.begin(), activeLoggedPlayers.end(), p) != activeLoggedPlayers.end());
-
-            if (p->getCurrentBet() < maxBet || (maxBet == 0 && !hasHeChecked)) {
-                actionComplete = false;
-
-                if (!hasHeChecked) activeLoggedPlayers.push_back(p);
-
-                int needed = maxBet - p->getCurrentBet();
-
-                if (i == 0) {
-                    std::cout << "\n[Your Turn] Chips: " << p->getChips() << " | Pot: " << pot << std::endl;
-                    if (needed == 0) {
-                        std::cout << "Action: 1.Raise(20) 2.Check(Stay) 3.Fold 4.All-in? ";
-                    }
-                    else {
-                        std::cout << "Action: 1.Raise(20) 2.Call(" << needed << ") 3.Fold 4.All-in? ";
-                    }
-
-                    int choice; std::cin >> choice;
-                    if (choice == 4) {
-                        int allInAmount = p->getChips();
-                        p->bet(allInAmount, pot);
-                        std::cout << "You WENT ALL-IN with " << p->getCurrentBet() << " chips!\n";
-
-                        if (p->getCurrentBet() > maxBet) {
-                            maxBet = p->getCurrentBet();
-                            activeLoggedPlayers.clear();
-                        }
-                        activeLoggedPlayers.push_back(p);
-                    }
-                    else if (choice == 1) {
-                        p->bet(needed + 20, pot);
-                        std::cout << "You Raised to " << p->getCurrentBet() << " chips!";
-                        if (p->isAllIn()) std::cout << " (ALL-IN!)";
-                        std::cout << "\n";
-
-                        maxBet = p->getCurrentBet();
-                        activeLoggedPlayers.clear();
-                        activeLoggedPlayers.push_back(p);
-                    }
-                    else if (choice == 2) {
-                        p->bet(needed, pot);
-                        std::cout << "You Checked/Called.";
-                        if (p->isAllIn()) std::cout << " (ALL-IN!)";
-                        std::cout << "\n";
-                    }
-                    else {
-                        p->fold();
-                        std::cout << "You Folded!\n";
-                    }
-                }
-                else {
-                    int dice = dis(gen);
-
-                    if (dice <= 5 && p->getChips() > 0) {
-                        int npcAllIn = p->getChips();
-                        p->bet(npcAllIn, pot);
-                        std::cout << p->getName() << " WENT ALL-IN with " << p->getCurrentBet() << " chips!\n";
-                        if (p->getCurrentBet() > maxBet) {
-                            maxBet = p->getCurrentBet();
-                            activeLoggedPlayers.clear();
-                        }
-                        activeLoggedPlayers.push_back(p);
-                    }
-                    else if (dice <= 15) {
-                        p->fold();
-                        std::cout << p->getName() << " Folds!\n";
-                    }
-                    else if (dice <= 38 && needed == 0) {
-                        p->bet(20, pot);
-                        std::cout << p->getName() << " Raises 20 chips!";
-                        if (p->isAllIn()) std::cout << " (ALL-IN!)";
-                        std::cout << "\n";
-
-                        maxBet = p->getCurrentBet();
-                        activeLoggedPlayers.clear();
-                        activeLoggedPlayers.push_back(p);
-                    }
-                    else if (dice <= 28 && needed > 0) {
-                        p->bet(needed + 20, pot);
-                        std::cout << p->getName() << " Re-raises 20 more chips!";
-                        if (p->isAllIn()) std::cout << " (ALL-IN!)";
-                        std::cout << "\n";
-
-                        maxBet = p->getCurrentBet();
-                        activeLoggedPlayers.clear();
-                        activeLoggedPlayers.push_back(p);
-                    }
-                    else {
-                        p->bet(needed, pot);
-                        if (needed == 0) std::cout << p->getName() << " Checks.\n";
-                        else {
-                            std::cout << p->getName() << " Calls " << needed << " chips.";
-                            if (p->isAllIn()) std::cout << " (ALL-IN!)";
-                            std::cout << "\n";
-                        }
-                    }
-                }
-            }
-        }
-
-        int activeChasingPlayers = 0;
-        for (auto p : players) {
-            if (!p->hasFolded() && !p->isAllIn() && p->getChips() > 0) activeChasingPlayers++;
-        }
-        if (activeChasingPlayers <= 1) break;
-    }
-    std::cout << "--- Betting Round complete! Pot is now: " << pot << " ---" << std::endl;
 }
 
 void Game::startNewRound() {
-    initDeck();
-    communityCards.clear();
     pot = 0;
-    roundStage = 0;
+    currentMaxBet = 0;
+    communityCards.clear();
+    for (auto& p : players) p.resetForNewRound();
 
-    std::cout << "\n==========================================" << std::endl;
-    std::cout << "--- New Round Start! 10 chips Ante deducted ---" << std::endl;
-
-    int deckIdx = 0;
-    for (auto p : players) {
-        p->clearHand();
-
-        if (p->getChips() <= 0) {
-            p->fold();
-            continue;
-        }
-
-        p->bet(10, pot);
-
-        Card c1 = deck[deckIdx++];
-        Card c2 = deck[deckIdx++];
-        if (p == players[0]) {
-            c1.setFaceUp(true);
-            c2.setFaceUp(true);
-        }
-        p->addCard(c1);
-        p->addCard(c2);
-    }
-
-    displayBoard();
-
-    if (players[0]->getChips() > 0 && !players[0]->hasFolded()) {
-        bettingRound();
-    }
+    createDeck();
+    shuffleDeck();
+    dealInitialCards();
+    cout << "\nSTART NEW ROUND" << endl;
 }
 
-void Game::proceedToNextStage() {
-    if (roundStage >= 4) return;
-
-    roundStage++;
-    int deckIdx = (int)players.size() * 2 + (int)communityCards.size();
-
-    if (roundStage == 1) {
-        std::cout << "\n--- Stage 1: Flop (Dealing 3 Community Cards) ---" << std::endl;
-        for (int i = 0; i < 3; ++i) {
-            Card cc = deck[deckIdx++];
-            cc.setFaceUp(true);
-            communityCards.push_back(cc);
-        }
-    }
-    else if (roundStage == 2) {
-        std::cout << "\n--- Stage 2: Turn (Dealing 4th Community Card) ---" << std::endl;
-        Card cc = deck[deckIdx++];
-        cc.setFaceUp(true);
-        communityCards.push_back(cc);
-    }
-    else if (roundStage == 3) {
-        std::cout << "\n--- Stage 3: River (Dealing 5th Community Card) ---" << std::endl;
-        Card cc = deck[deckIdx++];
-        cc.setFaceUp(true);
-        communityCards.push_back(cc);
-    }
-    else if (roundStage == 4) {
-        std::cout << "\n--- Stage 4: Showdown (Revealing Hands) ---" << std::endl;
-        determineWinner();
-        showPlayerChips();
-        return;
-    }
-
-    displayBoard();
-
-    int activeNPCs = 0;
-    for (size_t i = 1; i < players.size(); ++i) {
-        if (!players[i]->hasFolded() && !players[i]->isAllIn() && players[i]->getChips() > 0) activeNPCs++;
-    }
-
-    if (!players[0]->hasFolded() && !players[0]->isAllIn() && players[0]->getChips() > 0 && activeNPCs > 0) {
-        bettingRound();
-    }
-    else {
-        std::cout << "--- No more betting actions available (Players All-in or Out) ---" << std::endl;
-    }
+void Game::printCurrentState() const {
+    cout << "\nCURRENT GAME STATE" << endl;
+    cout << "Total Pot: " << pot << endl;
+    cout << "Community Cards: ";
+    if (communityCards.empty()) cout << "None";
+    for (const auto& c : communityCards) cout << "[" << c.getCardName() << "] ";
+    cout << "\nYour Hand: ";
+    for (const auto& c : players[0].hand) cout << "[" << c.getCardName() << "] ";
+    cout << " (Your Chips: " << players[0].chips << ")" << endl;
 }
 
-int Game::getPlayerChips() const {
-    if (players.empty()) return 0;
-    return players[0]->getChips();
-}
+void Game::playerActionPhase() {
+    // 每次下注圈開始前，重置大家在這一圈的表態狀態
+    // 用一個迴圈確保當有人 Raise 時，其他人必須重新表態
+    bool bettingComplete = false;
 
-bool Game::isRoundOver() const {
-    return roundStage == 4;
-}
+    while (!bettingComplete) {
+        bettingComplete = true; // 先假設這輪大家都平齊了
 
-void Game::determineWinner() {
-    int bestScore = -1;
-    std::vector<Player*> winners;
+        for (auto& p : players) {
+            // 已破產、已蓋牌、已 All-In 的人直接跳過
+            if (p.isBankrupt || p.isFolded || p.isAllIn) continue;
 
-    for (auto p : players) {
-        if (p->hasFolded()) continue;
+            int callAmt = currentMaxBet - p.currentBet;
 
-        std::vector<Card> currentHand = p->getHand();
-        p->clearHand();
-        for (auto& c : currentHand) {
-            c.setFaceUp(true);
-            p->addCard(c);
+            // 如果這個玩家目前的下注額不等於目前最高注額，或者大家都還沒下注（最高注為0且玩家也沒表態）
+            // 我們就必須詢問他，不讓他偷偷溜過去
+            if (callAmt > 0 || (currentMaxBet == 0 && p.currentBet == 0)) {
+
+                if (p.name == "Player_You") {
+                    printCurrentState();
+                    cout << p.name << " Turn. Current max bet: " << currentMaxBet << " (You bet: " << p.currentBet << ")" << endl;
+                    cout << "Select action (1: Call/Check, 2: Raise, 3: All-In, 4: Fold): ";
+                    int choice;
+                    cin >> choice;
+
+                    if (choice == 2) {
+                        cout << "Enter total raise amount: ";
+                        int raiseAmt;
+                        cin >> raiseAmt;
+                        if (raiseAmt >= (p.chips + p.currentBet)) choice = 3; // 籌碼不夠自動變 All-In
+                        else if (raiseAmt <= currentMaxBet) {
+                            cout << "Invalid raise amount! Forcing a Call instead." << endl;
+                            choice = 1; // 亂輸入太低的金額就強制變跟注
+                        }
+                        else {
+                            int extraCost = raiseAmt - p.currentBet;
+                            pot += extraCost;
+                            p.chips -= extraCost;
+                            p.currentBet = raiseAmt;
+                            currentMaxBet = raiseAmt;
+                            bettingComplete = false; // 有人加注了！其他人待會要再問一輪！
+                        }
+                    }
+                    if (choice == 1) {
+                        if (callAmt >= p.chips) choice = 3; // 籌碼不夠跟就強制變 All-In
+                        else {
+                            pot += callAmt;
+                            p.chips -= callAmt;
+                            p.currentBet = currentMaxBet;
+                            cout << "You chose Call/Check" << endl;
+                        }
+                    }
+                    if (choice == 3) {
+                        pot += p.chips;
+                        p.currentBet += p.chips;
+                        p.chips = 0;
+                        p.isAllIn = true;
+                        if (p.currentBet > currentMaxBet) {
+                            currentMaxBet = p.currentBet;
+                            bettingComplete = false; // All-In 金額超越目前最高注，其他人也要重問
+                        }
+                        cout << "You went ALL-IN" << endl;
+                    }
+                    if (choice == 4) {
+                        p.isFolded = true;
+                        cout << "You folded" << endl;
+                    }
+                }
+                else {
+                    // ================== NPC AI 行動區 ==================
+                    int aiDecision = rand() % 100;
+
+                    // 如果有人加注 (callAmt > 0)，AI 有 20% 機率蓋牌
+                    if (callAmt > 0 && aiDecision < 20) {
+                        p.isFolded = true;
+                        cout << p.name << " chose Fold." << endl;
+                    }
+                    // AI 有 20% 機率反夾、再加注 50 元
+                    else if (aiDecision >= 20 && aiDecision < 40 && p.chips >(callAmt + 50)) {
+                        int aiRaiseTotal = currentMaxBet + 50;
+                        int extraCost = aiRaiseTotal - p.currentBet;
+                        pot += extraCost;
+                        p.chips -= extraCost;
+                        p.currentBet = aiRaiseTotal;
+                        currentMaxBet = aiRaiseTotal;
+                        cout << p.name << " chose Raise to " << aiRaiseTotal << endl;
+                        bettingComplete = false; // NPC 加注了！等一下會再問一次玩家跟不跟！
+                    }
+                    // 剩餘狀況一律跟注或 Check
+                    else {
+                        if (callAmt < p.chips) {
+                            pot += callAmt;
+                            p.chips -= callAmt;
+                            p.currentBet = currentMaxBet;
+                            if (callAmt == 0) {
+                                cout << p.name << " chose Check." << endl;
+                            }
+                            else {
+                                cout << p.name << " chose Call." << endl;
+                            }
+                        }
+                        else {
+                            pot += p.chips;
+                            p.currentBet += p.chips;
+                            p.chips = 0;
+                            p.isAllIn = true;
+                            if (p.currentBet > currentMaxBet) {
+                                currentMaxBet = p.currentBet;
+                                bettingComplete = false;
+                            }
+                            cout << p.name << " went ALL-IN" << endl;
+                        }
+                    }
+                }
+            }
         }
 
-        int s = Evaluator::getScore(p->getHand(), communityCards);
-        std::cout << p->getName() << " [" << Evaluator::getHandName(s) << "] score: " << s << std::endl;
-
-        if (s > bestScore) {
-            bestScore = s;
-            winners.clear();
-            winners.push_back(p);
+        // 安全防護：如果一整輪問下來，只剩一個活著的人沒蓋牌，就不用繼續賭了，直接跳出
+        int activePlayers = 0;
+        for (const auto& p : players) {
+            if (!p.isFolded && !p.isBankrupt) activePlayers++;
         }
-        else if (s == bestScore) {
-            winners.push_back(p);
+        if (activePlayers <= 1) bettingComplete = true;
+    }
+
+    // 下注圈真正結束，把所有人的 currentBet 重置為 0，以便下一圈（如發翻牌後）重新計算
+    for (auto& p : players) {
+        p.currentBet = 0;
+    }
+    currentMaxBet = 0;
+}
+
+void Game::dealFlop() {
+    cout << "\nDealing Flop" << endl;
+    for (int i = 0; i < 3; ++i) { communityCards.push_back(deck.back()); deck.pop_back(); }
+}
+
+void Game::dealTurn() {
+    cout << "\nDealing Turn" << endl;
+    communityCards.push_back(deck.back()); deck.pop_back();
+}
+
+void Game::dealRiver() {
+    cout << "\nDealing River" << endl;
+    communityCards.push_back(deck.back()); deck.pop_back();
+}
+
+void Game::evaluateWinner() {
+    cout << "\nSHOWDOWN RESULT" << endl;
+    Player* winner = nullptr;
+    int maxScore = -1;
+
+    for (auto& p : players) {
+        if (p.isBankrupt || p.isFolded) continue;
+
+        vector<Card> combined = communityCards;
+        combined.insert(combined.end(), p.hand.begin(), p.hand.end());
+        int score = Evaluator::scoreHand(combined);
+
+        cout << p.name << " hand score: " << score << endl;
+
+        if (score > maxScore) {
+            maxScore = score;
+            winner = &p;
         }
     }
 
-    if (!winners.empty()) {
-        int share = pot / (int)winners.size();
-        for (auto w : winners) {
-            std::cout << ">>> WINNER: " << w->getName() << " wins " << share << " chips! <<<" << std::endl;
-            w->addChips(share);
-        }
+    if (winner) {
+        cout << "\nWinner: " << winner->name << " Wins Pot: " << pot << endl;
+        winner->chips += pot;
         pot = 0;
     }
 }
 
-void Game::showPlayerChips() {
-    std::cout << "\n--- Current Status ---" << std::endl;
-    for (auto p : players) std::cout << p->getName() << ": " << p->getChips() << std::endl;
+void Game::handleBankruptcies() {
+    for (auto& p : players) {
+        if (!p.isBankrupt && p.chips <= 0) {
+            p.isBankrupt = true;
+            cout << p.name << " is bankrupt and eliminated" << endl;
+        }
+    }
+}
+
+bool Game::isGameOver() const {
+    int activePlayers = 0;
+    for (const auto& p : players) {
+        if (!p.isBankrupt) activePlayers++;
+    }
+    return activePlayers <= 1;
 }

@@ -1,45 +1,45 @@
 #include <iostream>
-#include <string>
 #include "Game.h"
 
+using namespace std;
+
 int main() {
-    std::cout << "Enter number of NPC players (1-5): ";
-    int npcCount;
-    std::cin >> npcCount;
-    if (npcCount < 1) npcCount = 1;
-    if (npcCount > 5) npcCount = 5;
+    cout << "Welcome to Texas Holdem Console Game" << endl;
 
-    Game pokerGame;
-    pokerGame.addPlayer("You");
-    for (int i = 1; i <= npcCount; ++i) {
-        pokerGame.addPlayer("NPC_" + std::to_string(i));
+    cout << "Enter number of NPC opponents (1-5): ";
+    int botCount;
+    cin >> botCount;
+
+    if (botCount < 1) botCount = 1;
+
+    Game game;
+    game.initializeGame(botCount);
+
+    while (!game.isGameOver()) {
+        game.startNewRound();
+
+        game.playerActionPhase();
+
+        game.dealFlop();
+        game.playerActionPhase();
+
+        game.dealTurn();
+        game.playerActionPhase();
+
+        game.dealRiver();
+        game.playerActionPhase();
+
+        game.evaluateWinner();
+        game.handleBankruptcies();
+
+        if (game.isGameOver()) break;
+
+        cout << "\nPlay next round? (1: Yes, 0: No): ";
+        int keepPlaying;
+        cin >> keepPlaying;
+        if (keepPlaying == 0) break;
     }
 
-    if (pokerGame.getPlayerChips() <= 0) {
-        std::cout << "\n【GAME OVER】You have 0 chips! You are bankrupt.\n";
-        return 0;
-    }
-
-    pokerGame.startNewRound();
-
-    while (true) {
-        std::cout << "\n>>> Enter 1 to proceed to the next stage, or 0 to exit: ";
-        int choice;
-        std::cin >> choice;
-
-        if (choice == 0) break;
-
-        if (pokerGame.isRoundOver()) {
-            if (pokerGame.getPlayerChips() <= 0) {
-                std::cout << "\n【GAME OVER】You have 0 chips! You are bankrupt.\n";
-                break;
-            }
-            pokerGame.startNewRound();
-        }
-        else {
-            pokerGame.proceedToNextStage();
-        }
-    }
-
+    cout << "Game Over. Thanks for playing" << endl;
     return 0;
 }

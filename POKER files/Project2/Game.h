@@ -1,34 +1,34 @@
 #ifndef GAME_H
 #define GAME_H
 
-#include "Player.h"
-#include "Card.h"
 #include <vector>
+#include "Player.h"
+#include "card.h"
 
 class Game {
 private:
     std::vector<Card> deck;
-    std::vector<Player*> players;
     std::vector<Card> communityCards;
+    std::vector<Player> players;
     int pot;
-    int roundStage;
+    int currentMaxBet;
 
-    void initDeck();
-    void showPlayerChips();
-    void bettingRound();
+    void createDeck();
+    void shuffleDeck();
+    void dealInitialCards();
 
 public:
     Game();
-    ~Game();
-    void addPlayer(std::string name);
-
+    void initializeGame(int botCount);
     void startNewRound();
-    void proceedToNextStage();
-    bool isRoundOver() const;
-
-    int getPlayerChips() const; 
-    void determineWinner();
-    void displayBoard(); // 顯示終端機版本的桌面狀態
+    void printCurrentState() const;
+    void playerActionPhase();
+    void dealFlop();
+    void dealTurn();
+    void dealRiver();
+    void evaluateWinner();
+    void handleBankruptcies();
+    bool isGameOver() const;
 };
 
 #endif

@@ -1,19 +1,15 @@
 #ifndef CARD_H
 #define CARD_H
+
 #include <string>
 
 class Card {
-private:
-    int rank;
-    int suit;
-    bool isFaceUp;
 public:
-    Card(int r, int s);
-    int getRank() const;
-    int getSuit() const;
-    std::string toString() const;
+    int suit;  // 0: Clubs, 1: Diamonds, 2: Hearts, 3: Spades
+    int value; // 2-14 (11:J, 12:Q, 13:K, 14:A)
 
-    void setFaceUp(bool faceUp);
-    bool getFaceUp() const;
+    Card(int s = 0, int v = 0);
+    std::string getCardName() const;
 };
+
 #endif
