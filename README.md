@@ -78,7 +78,9 @@
 
 ## 9. UML圖
 
-![uml](圖片/UML圖.png)
+![uml](圖片/UML1_0.png)
+
+![uml](圖片/UML2_0.png)
 
 ## 10. 分工資訊
 *  **郭育宏** : Readme製作、生成程式、PPT製作。
